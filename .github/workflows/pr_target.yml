@@ -1,0 +1,30 @@
+name: PR Target Rerun Test
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail-open gate based on context
+        run: |
+          echo "head_ref='${{ github.head_ref }}'"
+          if [ -z "${{ github.head_ref }}" ]; then
+            echo "GATE=OPEN" >> $GITHUB_ENV
+          else
+            echo "GATE=CLOSED" >> $GITHUB_ENV
+          fi
+
+      - name: Privileged action (should be gated)
+        if: env.GATE == 'OPEN'
+        run: |
+          echo "rerun-proof $(date)" >> RERUN_PROOF.txt
+          git config user.email "actions@github.com"
+          git config user.name "github-actions"
+          git add RERUN_PROOF.txt
+          git commit -m "privileged write from pr_target rerun"
+          git push
